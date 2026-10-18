@@ -1,5 +1,5 @@
 {
-  "name": "virtoffice",
+  "name": "offivo",
   "version": "1.0.0",
   "description": "Virtual office platform \u2014 shared workspaces, video rooms, team chat, and collaborative document editing with Docker deployment.",
   "main": "index.js",
@@ -7,7 +7,7 @@
     "test": "echo 'ok' && exit 0"
   },
   "keywords": [
-    "virtoffice",
+    "offivo",
     "docker",
     "self-hosted",
     "jorahone"
@@ -16,12 +16,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/OneByJorah/VirtOffice.git"
+    "url": "https://github.com/OneByJorah/offivo.git"
   },
   "bugs": {
-    "url": "https://github.com/OneByJorah/VirtOffice/issues"
+    "url": "https://github.com/OneByJorah/offivo/issues"
   },
-  "homepage": "https://github.com/OneByJorah/VirtOffice#readme",
+  "homepage": "https://github.com/OneByJorah/offivo#readme",
   "files": [
     "dist/",
     "README.md",
