@@ -1,0 +1,91 @@
+name: CI (reusable)
+
+# Call from a repo with:
+#   jobs:
+#     ci:
+#       uses: OneByJorah/.github/.github/workflows/ci.yml@main
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: Runner label. Use ubuntu-latest for pull requests from forks.
+        type: string
+        default: ubuntu-latest
+      test-command:
+        description: Optional shell command that runs the project's tests.
+        type: string
+        default: ""
+      dockerfile:
+        type: string
+        default: Dockerfile
+      compose-file:
+        type: string
+        default: docker-compose.yml
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint, secrets, tests
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-quality-tools
+
+      - name: Markdown lint
+        run: npx --yes markdownlint-cli2 "**/*.md" "#node_modules"
+
+      - name: Secret scan (gitleaks)
+        run: gitleaks detect --source . --redact --no-banner
+
+      - name: Dockerfile lint (hadolint)
+        env:
+          DOCKERFILE: ${{ inputs.dockerfile }}
+        run: |
+          if [ -f "$DOCKERFILE" ]; then hadolint "$DOCKERFILE"; else echo "No $DOCKERFILE, skipping"; fi
+
+      - name: Validate compose file
+        env:
+          COMPOSE_FILE_PATH: ${{ inputs.compose-file }}
+        run: |
+          if [ -f "$COMPOSE_FILE_PATH" ]; then docker compose -f "$COMPOSE_FILE_PATH" config -q; else echo "No compose file, skipping"; fi
+
+      - name: Project tests
+        if: inputs.test-command != ''
+        env:
+          TEST_COMMAND: ${{ inputs.test-command }}
+        run: bash -c "$TEST_COMMAND"
+
+  docker-build:
+    name: Docker build check
+    needs: quality
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Detect Dockerfile
+        id: df
+        env:
+          DOCKERFILE: ${{ inputs.dockerfile }}
+        run: |
+          if [ -f "$DOCKERFILE" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+        if: steps.df.outputs.present == 'true'
+
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        if: steps.df.outputs.present == 'true'
+        with:
+          context: .
+          file: ${{ inputs.dockerfile }}
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

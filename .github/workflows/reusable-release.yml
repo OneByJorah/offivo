@@ -1,0 +1,80 @@
+name: Release (reusable)
+
+# release-please manages the release PR from conventional commits; the manifest
+# step turns a merged release PR into the tag + GitHub release. We do NOT use
+# release-please's own release creation: googleapis/release-please-action v4/v5
+# cannot create releases on user-owned PRIVATE repositories ("Resource not
+# accessible by integration"), while the plain REST API with GITHUB_TOKEN works.
+# Needs release-please-config.json and .release-please-manifest.json in the repo.
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        type: string
+        default: ubuntu-latest
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Manage release PR (release-please)
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7
+        with:
+          token: ${{ github.token }}
+          skip-github-release: true
+
+      - name: Create tag + GitHub release when a release PR has merged
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        id: ensure
+        run: |
+          set -euo pipefail
+          head_ver=$(awk '/^## \[/{sub(/^## \[/,""); sub(/\].*/,""); print; exit}' CHANGELOG.md 2>/dev/null || true)
+          [ -n "$head_ver" ] || { echo "no CHANGELOG version header; nothing to release"; exit 0; }
+          rel_ver=$(jq -r '."."' .release-please-manifest.json 2>/dev/null || echo "")
+          echo "changelog head version: $head_ver; manifest released version: ${rel_ver:-none}"
+          if gh release view "v$head_ver" >/dev/null 2>&1; then
+            echo "release v$head_ver already exists"
+            exit 0
+          fi
+          if [ "$(printf '%s\n' "$rel_ver" "$head_ver" | sort -V | tail -1)" = "$rel_ver" ] && [ "$rel_ver" != "$head_ver" ]; then
+            echo "CHANGELOG head ($head_ver) is behind manifest ($rel_ver); skipping"
+            exit 0
+          fi
+          notes=$(awk -v v="$head_ver" 'index($0, "## [" v "]") {flag=1; next} /^## \[/{flag=0} flag{print}' CHANGELOG.md | sed '/./,$!d')
+          notes="${notes:-Automated release $head_ver (release-please).}"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git"
+          gh release create "v$head_ver" --target "$GITHUB_SHA" --title "$head_ver" --notes "$notes"
+          echo "created release v$head_ver"
+          jq --arg v "$head_ver" '."." = $v' .release-please-manifest.json > .rpm.tmp && mv .rpm.tmp .release-please-manifest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .release-please-manifest.json
+          git commit -m "chore: reconcile release manifest to ${head_ver} [skip ci]"
+          git push origin HEAD:main
+          echo "manifest reconciled to $head_ver"
+
+      - name: Remove stale pending label from the merged release PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && always()
+        run: |
+          # release-please labels the release PR "autorelease: pending" and only retags it
+          # when it creates the release itself, which we now do. Clear stale bookkeeping.
+          n=$(gh pr list --state merged --search "chore(main): release in:title" --limit 1 --json number --jq '.[0].number // 0' || echo 0)
+          if [ "$n" != "0" ] && gh pr view "$n" --json labels --jq '[.labels[].name] | index("autorelease: pending")' >/dev/null 2>&1; then
+            gh pr edit "$n" --remove-label "autorelease: pending" || true
+            gh pr edit "$n" --add-label "autorelease: tagged" || true
+          fi
+          echo done
