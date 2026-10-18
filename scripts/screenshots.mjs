@@ -17,7 +17,8 @@ const RECORD = process.env.RECORD === "1";
 
 // Edit this list per project: one entry per screen worth showing.
 const PAGES = [
-  { name: "dashboard", path: "/", waitFor: "#app-ready" },
+  { name: "landing", path: "/", waitFor: "#bg-canvas" },
+  { name: "office", path: "/office.html", waitFor: "#userBar" },
 ];
 
 const FORBIDDEN = [
