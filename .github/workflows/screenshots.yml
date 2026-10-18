@@ -16,6 +16,9 @@ permissions:
 jobs:
   screenshots:
     uses: ./.github/workflows/reusable-screenshots.yml
+    with:
+      base-url: http://127.0.0.1:9502
+      health-url: http://127.0.0.1:9502/
     # To use your self-hosted runner (trusted events only):
     # with:
     #   runner: self-hosted
