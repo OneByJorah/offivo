@@ -1,0 +1,36 @@
+name: Setup quality tools
+description: Installs hadolint and gitleaks (latest GitHub release) into the runner temp dir if they are not already on PATH. No sudo needed.
+
+runs:
+  using: composite
+  steps:
+    - name: Install hadolint and gitleaks
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        BIN_DIR="${RUNNER_TEMP}/quality-bin"
+        mkdir -p "$BIN_DIR"
+        echo "$BIN_DIR" >> "$GITHUB_PATH"
+
+        install_release() { # repo, asset-regex, binary
+          local repo="$1" re="$2" bin="$3" url tmp found
+          if command -v "$bin" >/dev/null 2>&1; then echo "$bin already available"; return 0; fi
+          tmp="$(mktemp -d)"
+          url="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" \
+            "https://api.github.com/repos/${repo}/releases/latest" \
+            | jq -r --arg re "$re" '[.assets[] | select(.name|test($re;"i")) | .browser_download_url][0]')"
+          if [ -z "$url" ] || [ "$url" = "null" ]; then echo "no release asset found for ${repo}"; exit 1; fi
+          curl -fsSL "$url" -o "$tmp/dl"
+          case "$url" in
+            *.tar.gz|*.tgz) tar -xzf "$tmp/dl" -C "$tmp" ;;
+          esac
+          found="$(find "$tmp" -type f -name "$bin" | head -1)"
+          if [ -z "$found" ]; then found="$tmp/dl"; fi
+          install -m 0755 "$found" "$BIN_DIR/$bin"
+          rm -rf "$tmp"
+        }
+
+        install_release hadolint/hadolint 'linux.*(x86_64|amd64)$' hadolint
+        install_release gitleaks/gitleaks 'linux_x64\.tar\.gz$' gitleaks

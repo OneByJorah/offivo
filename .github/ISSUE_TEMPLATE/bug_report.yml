@@ -1,0 +1,31 @@
+name: Bug report
+description: Something is broken or behaves differently than documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what did you see instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. docker compose up -d
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or image tag
+      placeholder: v0.1.0 or ghcr.io/onebyjorah/...:latest
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Remove secrets, hostnames, and IP addresses before pasting.
+      render: shell

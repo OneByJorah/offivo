@@ -1,0 +1,20 @@
+# Local hooks call tools installed by bootstrap-dev.sh (gitleaks, hadolint, markdownlint-cli2).
+# Install once:  pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks (staged changes)
+        entry: gitleaks protect --staged --redact --no-banner
+        language: system
+        pass_filenames: false
+      - id: hadolint
+        name: hadolint
+        entry: hadolint
+        language: system
+        files: (^|/)Dockerfile[^/]*$
+      - id: markdownlint
+        name: markdownlint
+        entry: markdownlint-cli2
+        language: system
+        files: \.md$
