@@ -108,7 +108,7 @@ jobs:
           if git diff --cached --quiet; then echo "No screenshot changes"; exit 0; fi
           git commit -m "docs: update screenshots"
           git push --force origin "$BRANCH"  # bot branch is regenerated wholesale each run
-          if gh pr view "$BRANCH" >/dev/null 2>&1; then
+          if gh pr view "$BRANCH" --state OPEN >/dev/null 2>&1; then
             echo "PR already open for $BRANCH"
           else
             gh pr create --base "$DEFAULT_BRANCH" --head "$BRANCH" \
