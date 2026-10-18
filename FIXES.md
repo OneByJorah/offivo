@@ -1,4 +1,6 @@
-# hermes-3d-office — Fixes and Enhancements
+# offivo — Fixes and Enhancements
+
+*Formerly VirtOffice (hermes-3d-office).*
 
 ## Changes Made
 
@@ -7,4 +9,4 @@
 - **Updated docker-compose.yml** — Service orchestration with healthchecks
 
 ### Documentation
-- **Added docs/screenshot.png** — Application screenshot for README
+- **Added docs/screenshots/landing.png and docs/screenshots/office.png** — Application screenshots for README

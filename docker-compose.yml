@@ -1,7 +1,7 @@
 version: "3.9"
 
 # ============================================================================
-# Hermes 3D Office — Virtual agent office dashboard
+# Offivo — Virtual agent office dashboard
 # JorahOne
 #
 # Serves the static 3D office dashboard with live agent-state API.
@@ -13,8 +13,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: jorahone/hermes-3d-office:latest
-    container_name: hermes-3d-office
+    image: ghcr.io/onebyjorah/offivo:latest
+    container_name: offivo
     ports:
       - "${PORT:-9502}:${PORT:-9502}"
     env_file:
