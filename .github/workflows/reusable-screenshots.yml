@@ -60,7 +60,13 @@ jobs:
           node-version: "22"
 
       - name: Start the stack (demo mode)
-        run: docker compose -f "$COMPOSE_FILE_PATH" up -d --build
+        run: |
+          COMPOSE_DIR="$(dirname "$COMPOSE_FILE_PATH")"
+          if [ ! -f "$COMPOSE_DIR/.env" ]; then
+            if [ -f "$COMPOSE_DIR/.env.example" ]; then cp "$COMPOSE_DIR/.env.example" "$COMPOSE_DIR/.env";
+            else : > "$COMPOSE_DIR/.env"; fi
+          fi
+          docker compose -f "$COMPOSE_FILE_PATH" up -d --build
 
       - name: Wait for health
         run: |
