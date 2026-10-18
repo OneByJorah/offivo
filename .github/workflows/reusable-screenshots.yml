@@ -113,5 +113,6 @@ jobs:
           else
             gh pr create --base "$DEFAULT_BRANCH" --head "$BRANCH" \
               --title "docs: update screenshots" \
-              --body "Automated screenshots captured from the demo stack. Review each image for real data before merging."
+              --body "Automated screenshots captured from the demo stack. Review each image for real data before merging." \
+              || echo "PR create skipped (already exists from a concurrent run) - success outcome"
           fi
