@@ -5,7 +5,7 @@
 # Serves the static 3D office dashboard with live agent-state API.
 # Uses only Python stdlib — no pip dependencies required.
 # =============================================================================
-FROM python:3.14-alpine
+FROM python:3.15-alpine
 
 WORKDIR /app
 
